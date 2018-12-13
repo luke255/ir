@@ -28,13 +28,18 @@ ha.on('connection', info => {
         wait = false;
         tone('d=16,o=6,b=125:c.');
     }
-}).on('state:light.hgrp0000000006', data => {
-    let lightOld = light.cur;
-    light.cur = Math.round((data['new_state'].attributes.brightness / 254) * light.inc) || 0;
-    if (light.cur !== lightOld) {
-        console.log('Lights:', light.cur);
-    }
-}).connect();
+});
+ha.connect().then(() => {
+    ha.on('state:light.hgrp0000000006', data => {
+        let lightOld = light.cur;
+        light.cur = Math.round((data['new_state'].attributes.brightness / 254) * light.inc) || 0;
+        if (light.cur !== lightOld) {
+            console.log('Lights:', light.cur);
+        }
+    });
+}).catch((error) => {
+    console.error(error);
+});
 denonClient.on('masterVolumeChanged', (volume) => {
     console.log('AVR: volume', volume);
 }).on('powerChanged', (stat) => {
