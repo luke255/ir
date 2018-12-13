@@ -21,10 +21,11 @@ let ha = new Homeassistant({
         init: 7,
         multiplier: 3, // Multipler to calculate external volume percentage step for one internal volume step
     },
-    inp, on, wait;
+    inp, on, wait = true;
 ha.on('connection', info => {
     console.log('Home Assistant:', info);
     if (info === 'authenticated') {
+        wait = false;
         tone('d=16,o=6,b=125:c.');
     }
 }).on('state:light.hgrp0000000006', data => {
