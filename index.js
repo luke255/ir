@@ -50,11 +50,14 @@ denonClient.on('masterVolumeChanged', (volume) => {
     console.log('AVR: connected');
     denonClient.getVolume().then((data) => {
         volCon(Math.round((data - vol.min) / vol.multiplier));
-    }).getMute().then((data) => {
+    });
+    denonClient.getMute().then((data) => {
         vol.mute = (data === 'ON');
-    }).getInput().then((data) => {
+    });
+    denonClient.getInput().then((data) => {
         inp = data;
-    }).getPower().then((data) => {
+    });
+    denonClient.getPower().then((data) => {
         on = (data === 'ON');
     });
 }).catch((error) => {
