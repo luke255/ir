@@ -14,6 +14,7 @@
         "denon-client": "^0.2.4",
         "node-hid": "^0.7.4",
         "node-homeassistant": "^1.5.0",
+        "node-hue-api": "^2.4.4",
         "rpio-rtttl-piezo": "github:nochecksum/rpio-rtttl-piezo"
     },
     "main": "index.js",

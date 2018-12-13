@@ -3,7 +3,10 @@ const Denon = require('denon-client'),
     HID = require('node-hid'),
     Homeassistant = require('node-homeassistant'),
     piezo = require('rpio-rtttl-piezo'),
-    secrets = require('./secrets.json');
+    secrets = require('./secrets.json'),
+    nodeHue = require('node-hue-api'),
+    HueApi = nodeHue.HueApi,
+    lightState = nodeHue.lightState;
 let ha = new Homeassistant({
         host: '10.0.0.5',
         protocol: 'ws',
@@ -21,6 +24,8 @@ let ha = new Homeassistant({
         init: 7,
         multiplier: 3, // Multipler to calculate external volume percentage step for one internal volume step
     },
+    hue = new HueApi('10.0.0.11', secrets.hue),
+    state = lightState.create(),
     inp, on, wait = true;
 ha.on('connection', info => {
     console.log('Home Assistant:', info);
@@ -148,22 +153,9 @@ function lightCon(lightNew) {
     }
     light.cur = lightNew;
     if (lightNew === 0) {
-        ha.call({
-            domain: 'light',
-            service: 'turn_off',
-            'service_data': {
-                'entity_id': 'light.hgrp0000000006'
-            }
-        });
+        hue.setGroupLightState(2, state.off()).done();
     } else {
-        ha.call({
-            domain: 'light',
-            service: 'turn_on',
-            'service_data': {
-                'entity_id': 'light.hgrp0000000006',
-                brightness: (lightNew / light.inc) * 254
-            }
-        });
+        hue.setGroupLightState(2, state.on().bri((lightNew / light.inc) * 254)).done();
     }
 }
 
