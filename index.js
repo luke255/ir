@@ -77,7 +77,7 @@ hid.on('data', function(data) {
                 });
                 setTimeout(function() {
                     wait = false;
-                    console.log('Power" enabled');
+                    console.log('Power: enabled');
                 }, 7000);
             }
             break;
