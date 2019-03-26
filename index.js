@@ -112,7 +112,7 @@ hid.on('data', function(data) {
                 service: 'volume_mute',
                 'service_data': {
                     'entity_id': 'media_player.av_receiver',
-                    'is_volume_muted': !(vol.mute)
+                    'is_volume_muted': (vol.mute === false)
                 }
             }).catch((e) => {
                 console.log(e);
