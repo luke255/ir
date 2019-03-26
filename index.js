@@ -93,7 +93,7 @@ hid.on('data', function(data) {
             }
             break;
         case 'AQE/': // Source
-            tone((inp !== 'MPLAY' ? 'd=32,o=5,b=125:c' : 'd=32,o=6,b=100:c'));
+            tone(`d=32,o=${inp !== 'MPLAY' ? '5' : '6'},b=180:c,p,c`);
             denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
             break;
         case 'AQE6': // Vol +
