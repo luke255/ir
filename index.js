@@ -95,6 +95,17 @@ hid.on('data', function(data) {
         case 'AQE/': // Source
             tone(`d=32,o=${inp !== 'MPLAY' ? '5' : '6'},b=180:c,p,c`);
             denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
+            if (inp === 'MPLAY') {
+                ha.call({
+                    domain: 'switch',
+                    service: 'turn_on',
+                    'service_data': {
+                        'entity_id': 'switch.pc'
+                    }
+                }).catch((e) => {
+                    console.log(e);
+                });
+            }
             break;
         case 'AQE6': // Vol +
             volCon(vol.cur + 1);
