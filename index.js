@@ -16,7 +16,7 @@ let ha = new Homeassistant({
     hid = new HID.HID('8352', '1'),
     light = {
         cur: 0,
-        inc: 16
+        inc: 8
     },
     vol = {
         min: 20, // Minimum external volume in percent
@@ -35,12 +35,9 @@ ha.on('connection', info => {
     }
 });
 ha.connect().then(() => {
-    ha.on('state:light.hgrp0000000006', data => {
-        let lightOld = light.cur;
-        light.cur = Math.round((data['new_state'].attributes.brightness / 254) * light.inc) || 0;
-        if (light.cur !== lightOld) {
-            console.log('Lights:', light.cur);
-        }
+    ha.on('state:light.hgrp_0000000006', data => {
+        light.cur = Math.round((Math.sqrt(data['new_state'].attributes.brightness) / 16) * light.inc) || 0;
+        console.log('Lights:', light.cur);
     });
 }).catch((error) => {
     console.error(error);
@@ -155,7 +152,7 @@ function lightCon(lightNew) {
     if (lightNew === 0) {
         hue.setGroupLightState(2, state.off()).done();
     } else {
-        hue.setGroupLightState(2, state.on().bri((lightNew / light.inc) * 254)).done();
+        hue.setGroupLightState(2, state.on().bri(Math.pow((lightNew / light.inc) * 16, 2))).done();
     }
 }
 
