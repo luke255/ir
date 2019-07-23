@@ -3,18 +3,18 @@
     "version": "0.0.1",
     "license": "ISC",
     "devDependencies": {
-        "eslint": "^4.19.1",
-        "eslint-config-standard": "^10.2.1",
-        "eslint-plugin-import": "^2.12.0",
-        "eslint-plugin-node": "^5.2.1",
-        "eslint-plugin-promise": "^3.8.0",
-        "eslint-plugin-standard": "^3.1.0"
+        "eslint": "^6.1.0",
+        "eslint-config-standard": "^13.0.1",
+        "eslint-plugin-import": "^2.18.2",
+        "eslint-plugin-node": "^9.1.0",
+        "eslint-plugin-promise": "^4.2.1",
+        "eslint-plugin-standard": "^4.0.0"
     },
     "dependencies": {
         "denon-client": "^0.2.4",
-        "node-hid": "^0.7.4",
+        "node-hid": "^0.7.9",
         "node-homeassistant": "github:luke255/node-homeassistant#access_token",
-        "node-hue-api": "^2.4.4",
+        "node-hue-api": "^2.4.6",
         "rpio-rtttl-piezo": "github:nochecksum/rpio-rtttl-piezo"
     },
     "main": "index.js",
