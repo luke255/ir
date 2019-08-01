@@ -7,7 +7,7 @@ const Denon = require('denon-client'),
     nodeHue = require('node-hue-api'),
     HueApi = nodeHue.HueApi,
     lightState = nodeHue.lightState;
-let ha = new Homeassistant({
+let app, ha = new Homeassistant({
         host: '10.0.0.5',
         protocol: 'ws',
         password: secrets.ha,
@@ -18,6 +18,8 @@ let ha = new Homeassistant({
         cur: 0,
         inc: 8
     },
+    listening = false,
+    sosCounter = 0,
     vol = {
         min: 20, // Minimum external volume in percent
         inc: 16, // Number of internal volume steps
@@ -26,44 +28,50 @@ let ha = new Homeassistant({
     },
     hue = new HueApi('10.0.0.11', secrets.hue),
     state = lightState.create(),
-    inp, on, wait = true;
+    inp, on, wait;
 ha.on('connection', info => {
     console.log('Home Assistant:', info);
-    if (info === 'authenticated') {
-        wait = false;
-        tone('d=16,o=6,b=125:c.');
-    }
 });
-ha.connect().then(() => {
-    ha.on('state:light.hgrp_0000000006', data => {
-        light.cur = Math.round((Math.sqrt(data['new_state'].attributes.brightness) / 16) * light.inc) || 0;
-        console.log('Lights:', light.cur);
+haConnect();
+
+function haConnect() {
+    ha.connect().then(haListen).catch((error) => {
+        console.error(error);
+        setTimeout(haConnect, 5000);
     });
-}).catch((error) => {
-    console.error(error);
-});
+}
+
+function haListen() {
+    if (!listening) {
+        console.log('Home Assistant: Listening for events');
+        listening = true;
+        ha.on('state:light.hgrp_0000000006', data => {
+            light.cur = Math.round((Math.sqrt(data['new_state'].attributes.brightness) / 16) * light.inc) || 0;
+            console.log('Lights:', light.cur);
+        });
+        ha.on('state:media_player.shieldtv', data => {
+            app = data['new_state'].attributes['app_name'];
+            console.log('App activated:', app);
+        });
+    }
+}
 denonClient.on('masterVolumeChanged', (volume) => {
     console.log('AVR: volume', volume);
 }).on('powerChanged', (stat) => {
     on = (stat === 'ON');
-    if (stat === 'ON') volCon(vol.init);
+    if (stat === 'ON') vol.cur = vol.init;
     console.log('AVR:', (stat === 'ON' ? 'on' : 'off'));
 }).on('muteChanged', (stat) => {
     vol.mute = (stat === 'ON');
     console.log('AVR:', (stat === 'OFF' ? 'un' : '') + 'mute');
-}).on('inputChanged', (stat) => {
-    inp = stat;
-    console.log('AVR: selected', stat, 'input');
 }).connect().then(() => {
+    inp = false;
     console.log('AVR: connected');
     denonClient.getVolume().then((data) => {
         volCon(Math.round((data - vol.min) / vol.multiplier));
     });
     denonClient.getMute().then((data) => {
         vol.mute = (data === 'ON');
-    });
-    denonClient.getInput().then((data) => {
-        inp = data;
     });
     denonClient.getPower().then((data) => {
         on = (data === 'ON');
@@ -74,10 +82,10 @@ denonClient.on('masterVolumeChanged', (volume) => {
 hid.on('data', function(data) {
     data = data.toString('base64');
     switch (data) {
-        case 'AQFA': // Power
+        case 'AQFA': // @ / Power
+            tone((on ? 'd=32,o=5,b=125:c6,g,e,c' : 'd=32,o=5,b=125:c,e,g,c6'));
             if (!wait) {
                 console.log('Power: disabled');
-                tone((on ? 'd=32,o=5,b=125:c6,g,e,c' : 'd=32,o=5,b=125:c,e,g,c6'));
                 wait = true;
                 ha.call({
                     domain: 'switch',
@@ -92,28 +100,76 @@ hid.on('data', function(data) {
                 }, 7000);
             }
             break;
-        case 'AQE/': // Source
-            tone(`d=32,o=${inp !== 'MPLAY' ? '5' : '6'},b=180:c,p,c`);
-            denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
-            if (inp === 'MPLAY') {
-                ha.call({
-                    domain: 'switch',
-                    service: 'turn_on',
-                    'service_data': {
-                        'entity_id': 'switch.pc'
+        case 'AQE/': // ? / Source
+            tone(`d=32,o=${inp ? '5' : '6'},b=180:c,p,c`);
+            inp = !inp;
+            pc(inp);
+            break;
+        case 'AQAx': // \ / Context Menu
+            if (sosCounter === 0) {
+                console.log('SOS Mode Armed');
+                setTimeout(() => {
+                    if (sosCounter > 7) {
+                        console.log('SOS Mode Triggered!');
+                        tone('d=16,o=4,b=180:c');
+                        ha.call({
+                            domain: 'automation',
+                            service: 'turn_on',
+                            'service_data': {
+                                'entity_id': 'automation.post_sos'
+                            }
+                        });
+                        ha.call({
+                            domain: 'switch',
+                            service: 'turn_off',
+                            'service_data': {
+                                'entity_id': 'switch.tv'
+                            }
+                        });
+                        ha.call({
+                            domain: 'androidtv',
+                            service: 'adb_command',
+                            'service_data': {
+                                'entity_id': 'media_player.shieldtv',
+                                'command': 'reboot'
+                            }
+                        });
+                        ha.call({
+                            domain: 'homeassistant',
+                            service: 'restart'
+                        });
+                        process.exit();
+                    } else {
+                        console.log('SOS Mode Disarmed');
+                        sosCounter = 0;
                     }
-                }).catch((e) => {
-                    console.log(e);
-                });
+                }, 2000);
+            }
+            sosCounter++;
+            break;
+        case 'AQA4': // / / Menu
+            ha.call({
+                domain: 'androidtv',
+                service: 'adb_command',
+                'service_data': {
+                    'entity_id': 'media_player.shieldtv',
+                    'command': 'am start -n org.xbmc.kodi/.Splash'
+                }
+            });
+            if (app === 'Kodi') {
+                // {
+                //     "entity_id": "media_player.kodi",
+                //     "method": "Application.Quit"
+                // }
             }
             break;
-        case 'AQE6': // Vol +
+        case 'AQE6': // : / Vol +
             volCon(vol.cur + 1);
             break;
-        case 'AQE7': // Vol -
+        case 'AQE7': // ; / Vol -
             volCon(vol.cur - 1);
             break;
-        case 'AQE8': // Mute
+        case 'AQE8': //< / Mute
             tone((!vol.mute ? 'd=32,o=5,b=125:c6,c' : 'd=32,o=5,b=125:c,c6'));
             ha.call({
                 domain: 'media_player',
@@ -126,10 +182,10 @@ hid.on('data', function(data) {
                 console.log(e);
             });
             break;
-        case 'AQE9': // Channel +
+        case 'AQE9': // = / Channel +
             lightCon(light.cur + 1);
             break;
-        case 'AQE+': // Channel -
+        case 'AQE+': // > / Channel -
             lightCon(light.cur - 1);
             break;
     }
@@ -168,16 +224,26 @@ function lightCon(lightNew) {
 }
 
 function tone(code) {
-    if (!wait) {
-        piezo.play({
-            pwmOutputPin: 33,
-            rtttl: 'ir:' + code,
-            dutyCycle: 2,
-            freqMultiplier: 1
-        });
-    }
+    piezo.play({
+        pwmOutputPin: 33,
+        rtttl: 'ir:' + (wait ? 'd=32,o=4,b=180:c,p,c' : code),
+        dutyCycle: 2,
+        freqMultiplier: 1
+    });
 }
 
 function bip(ind) {
     tone(`d=32,o=${ind + 5},b=400:c`);
+}
+
+function pc(turnOn) {
+    ha.call({
+        domain: 'switch',
+        service: `turn_${turnOn ? 'on' : 'off'}`,
+        'service_data': {
+            'entity_id': 'switch.pc'
+        }
+    }).catch((e) => {
+        console.log(e);
+    });
 }
