@@ -19,7 +19,7 @@ let app, ha = new Homeassistant({
         inc: 8
     },
     listening = false,
-    sosCounter = 0,
+    counter = new Array(2).fill(0),
     vol = {
         min: 20, // Minimum external volume in percent
         inc: 16, // Number of internal volume steps
@@ -106,46 +106,6 @@ hid.on('data', function(data) {
             pc(inp);
             break;
         case 'AQAx': // \ / Context Menu
-            if (sosCounter === 0) {
-                console.log('SOS Mode Armed');
-                setTimeout(() => {
-                    if (sosCounter > 7) {
-                        console.log('SOS Mode Triggered!');
-                        tone('d=16,o=4,b=180:c');
-                        ha.call({
-                            domain: 'automation',
-                            service: 'turn_on',
-                            'service_data': {
-                                'entity_id': 'automation.post_sos'
-                            }
-                        });
-                        ha.call({
-                            domain: 'switch',
-                            service: 'turn_off',
-                            'service_data': {
-                                'entity_id': 'switch.tv'
-                            }
-                        });
-                        ha.call({
-                            domain: 'androidtv',
-                            service: 'adb_command',
-                            'service_data': {
-                                'entity_id': 'media_player.shieldtv',
-                                'command': 'reboot'
-                            }
-                        });
-                        ha.call({
-                            domain: 'homeassistant',
-                            service: 'restart'
-                        });
-                        process.exit();
-                    } else {
-                        console.log('SOS Mode Disarmed');
-                        sosCounter = 0;
-                    }
-                }, 2000);
-            }
-            sosCounter++;
             break;
         case 'AQA4': // / / Menu
             ha.call({
@@ -162,6 +122,36 @@ hid.on('data', function(data) {
                 //     "method": "Application.Quit"
                 // }
             }
+            counters('SOS Mode', 0, 7, () => {
+                tone('d=16,o=4,b=180:c');
+                ha.call({
+                    domain: 'automation',
+                    service: 'turn_on',
+                    'service_data': {
+                        'entity_id': 'automation.post_sos'
+                    }
+                });
+                ha.call({
+                    domain: 'switch',
+                    service: 'turn_off',
+                    'service_data': {
+                        'entity_id': 'switch.tv'
+                    }
+                });
+                ha.call({
+                    domain: 'androidtv',
+                    service: 'adb_command',
+                    'service_data': {
+                        'entity_id': 'media_player.shieldtv',
+                        'command': 'reboot'
+                    }
+                });
+                ha.call({
+                    domain: 'homeassistant',
+                    service: 'restart'
+                });
+                process.exit();
+            });
             break;
         case 'AQE6': // : / Vol +
             volCon(vol.cur + 1);
@@ -246,4 +236,18 @@ function pc(turnOn) {
     }).catch((e) => {
         console.log(e);
     });
+}function counters(name, counterNumber, func) {
+    if (counter[counterNumber] === 0) {
+        console.log(name + ' Armed');
+        setTimeout(() => {
+            if (counter[counterNumber] > 7) {
+                console.log(name + ' Triggered!');
+                func();
+            } else {
+                console.log(name + ' Disarmed');
+                counter[counterNumber] = 0;
+            }
+        }, 2000);
+    }
+    counter[counterNumber]++;
 }
