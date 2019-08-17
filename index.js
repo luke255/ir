@@ -28,7 +28,8 @@ let app, ha = new Homeassistant({
         inc: 8
     },
     listening = false,
-    counter = new Array(2).fill(0),
+    counter = new Array(2)
+        .fill(0),
     vol = {
         min: 20, // Minimum external volume in percent
         inc: 16, // Number of internal volume steps
@@ -44,10 +45,12 @@ ha.on('connection', info => {
 haConnect();
 
 function haConnect() {
-    ha.connect().then(haListen).catch((error) => {
-        console.error(error);
-        setTimeout(haConnect, 5000);
-    });
+    ha.connect()
+        .then(haListen)
+        .catch((error) => {
+            console.error(error);
+            setTimeout(haConnect, 5000);
+        });
 }
 
 function haListen() {
@@ -66,33 +69,43 @@ function haListen() {
 }
 denonClient.on('masterVolumeChanged', (volume) => {
     console.log('AVR: volume', volume);
-}).on('powerChanged', (stat) => {
-    on = (stat === 'ON');
-    if (stat === 'ON') vol.cur = vol.init;
-    console.log('AVR:', (stat === 'ON' ? 'on' : 'off'));
-}).on('muteChanged', (stat) => {
-    vol.mute = (stat === 'ON');
-    console.log('AVR:', (stat === 'OFF' ? 'un' : '') + 'mute');
-}).on('inputChanged', (stat) => {
-    inp = stat;
-    console.log('AVR: selected', stat, 'input');
-}).connect().then(() => {
-    console.log('AVR: connected');
-    denonClient.getVolume().then((data) => {
-        volCon(Math.round((data - vol.min) / vol.multiplier));
+})
+    .on('powerChanged', (stat) => {
+        on = (stat === 'ON');
+        if (stat === 'ON') vol.cur = vol.init;
+        console.log('AVR:', (stat === 'ON' ? 'on' : 'off'));
+    })
+    .on('muteChanged', (stat) => {
+        vol.mute = (stat === 'ON');
+        console.log('AVR:', (stat === 'OFF' ? 'un' : '') + 'mute');
+    })
+    .on('inputChanged', (stat) => {
+        inp = stat;
+        console.log('AVR: selected', stat, 'input');
+    })
+    .connect()
+    .then(() => {
+        console.log('AVR: connected');
+        denonClient.getVolume()
+            .then((data) => {
+                volCon(Math.round((data - vol.min) / vol.multiplier));
+            });
+        denonClient.getInput()
+            .then((data) => {
+                inp = data;
+            });
+        denonClient.getMute()
+            .then((data) => {
+                vol.mute = (data === 'ON');
+            });
+        denonClient.getPower()
+            .then((data) => {
+                on = (data === 'ON');
+            });
+    })
+    .catch((error) => {
+        console.error(error);
     });
-    denonClient.getInput().then((data) => {
-        inp = data;
-    });
-    denonClient.getMute().then((data) => {
-        vol.mute = (data === 'ON');
-    });
-    denonClient.getPower().then((data) => {
-        on = (data === 'ON');
-    });
-}).catch((error) => {
-    console.error(error);
-});
 hid.on('data', function(data) {
     data = data.toString('base64');
     switch (data) {
@@ -117,10 +130,11 @@ hid.on('data', function(data) {
         case 'AQE/': // ? / Source
             tone(`d=32,o=${inp ? '5' : '6'},b=180:c,p,c`);
             if (inp !== 'MPLAY' && inp !== 'GAME') {
-                denonClient.getInput().then((data) => {
-                    inp = data;
-                    denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
-                });
+                denonClient.getInput()
+                    .then((data) => {
+                        inp = data;
+                        denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
+                    });
             }
             denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
             break;
@@ -183,9 +197,10 @@ hid.on('data', function(data) {
                     'entity_id': 'media_player.av_receiver',
                     'is_volume_muted': (vol.mute === false)
                 }
-            }).catch((e) => {
-                console.log(e);
-            });
+            })
+                .catch((e) => {
+                    console.log(e);
+                });
             break;
         case 'AQE9': // = / Channel +
             lightCon(light.cur + 1);
@@ -222,9 +237,12 @@ function lightCon(lightNew) {
     }
     light.cur = lightNew;
     if (lightNew === 0) {
-        hue.setGroupLightState(2, state.off()).done();
+        hue.setGroupLightState(2, state.off())
+            .done();
     } else {
-        hue.setGroupLightState(2, state.on().bri(Math.pow((lightNew / light.inc) * 16, 2))).done();
+        hue.setGroupLightState(2, state.on()
+            .bri(Math.pow((lightNew / light.inc) * 16, 2)))
+            .done();
     }
 }
 
