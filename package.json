@@ -15,6 +15,7 @@
         "node-hid": "^0.7.9",
         "node-homeassistant": "github:luke255/node-homeassistant#access_token",
         "node-hue-api": "^2.4.6",
+        "node-schedule": "^1.3.2",
         "rpio-rtttl-piezo": "github:nochecksum/rpio-rtttl-piezo"
     },
     "main": "index.js",

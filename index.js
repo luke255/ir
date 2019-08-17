@@ -5,8 +5,17 @@ const Denon = require('denon-client'),
     piezo = require('rpio-rtttl-piezo'),
     secrets = require('./secrets.json'),
     nodeHue = require('node-hue-api'),
+    schedule = require('node-schedule'),
     HueApi = nodeHue.HueApi,
     lightState = nodeHue.lightState;
+schedule.scheduleJob('0 * * * *', () => {
+    piezo.play({
+        pwmOutputPin: 33,
+        rtttl: 'ir:d=32,o=7,b=60:c,p,c,p,8p',
+        dutyCycle: 32,
+        freqMultiplier: 1
+    });
+});
 let app, ha = new Homeassistant({
         host: '10.0.0.5',
         protocol: 'ws',
