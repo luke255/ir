@@ -236,17 +236,7 @@ function bip(ind) {
     tone(`d=32,o=${ind + 5},b=400:c`);
 }
 
-function pc(turnOn) {
-    ha.call({
-        domain: 'switch',
-        service: `turn_${turnOn ? 'on' : 'off'}`,
-        'service_data': {
-            'entity_id': 'switch.pc'
-        }
-    }).catch((e) => {
-        console.log(e);
-    });
-}function counters(name, counterNumber, func) {
+function counters(name, counterNumber, func) {
     if (counter[counterNumber] === 0) {
         console.log(name + ' Armed');
         setTimeout(() => {
