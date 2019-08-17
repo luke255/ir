@@ -64,11 +64,16 @@ denonClient.on('masterVolumeChanged', (volume) => {
 }).on('muteChanged', (stat) => {
     vol.mute = (stat === 'ON');
     console.log('AVR:', (stat === 'OFF' ? 'un' : '') + 'mute');
+}).on('inputChanged', (stat) => {
+    inp = stat;
+    console.log('AVR: selected', stat, 'input');
 }).connect().then(() => {
-    inp = false;
     console.log('AVR: connected');
     denonClient.getVolume().then((data) => {
         volCon(Math.round((data - vol.min) / vol.multiplier));
+    });
+    denonClient.getInput().then((data) => {
+        inp = data;
     });
     denonClient.getMute().then((data) => {
         vol.mute = (data === 'ON');
@@ -102,8 +107,13 @@ hid.on('data', function(data) {
             break;
         case 'AQE/': // ? / Source
             tone(`d=32,o=${inp ? '5' : '6'},b=180:c,p,c`);
-            inp = !inp;
-            pc(inp);
+            if (inp !== 'MPLAY' && inp !== 'GAME') {
+                denonClient.getInput().then((data) => {
+                    inp = data;
+                    denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
+                });
+            }
+            denonClient.setInput((inp !== 'MPLAY' ? 'MPLAY' : 'GAME'));
             break;
         case 'AQAx': // \ / Context Menu
             break;
