@@ -118,19 +118,15 @@ hid.on('data', function(data) {
         case 'AQAx': // \ / Context Menu
             break;
         case 'AQA4': // / / Menu
-            ha.call({
-                domain: 'androidtv',
-                service: 'adb_command',
-                'service_data': {
-                    'entity_id': 'media_player.shieldtv',
-                    'command': 'am start -n org.xbmc.kodi/.Splash'
-                }
-            });
-            if (app === 'Kodi') {
-                // {
-                //     "entity_id": "media_player.kodi",
-                //     "method": "Application.Quit"
-                // }
+            if (app !== 'Kodi') {
+                ha.call({
+                    domain: 'androidtv',
+                    service: 'adb_command',
+                    'service_data': {
+                        'entity_id': 'media_player.shieldtv',
+                        'command': 'am start -n org.xbmc.kodi/.Splash'
+                    }
+                });
             }
             counters('SOS Mode', 0, 7, () => {
                 tone('d=16,o=4,b=180:c');
